@@ -1,31 +1,9 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import URL
+from sqlalchemy import text
+from backend.database import engine
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from pathlib import Path
 
-
-# ============================================================
-# MySQL Configuration
-# ============================================================
-
-MYSQL_USER = "root"
-MYSQL_PASSWORD = "Yasasvi@20"
-MYSQL_HOST = "localhost"
-MYSQL_PORT = 3306
-MYSQL_DATABASE = "healthcare_claims"
-
-
-connection_url = URL.create(
-    "mysql+pymysql",
-    username=MYSQL_USER,
-    password=MYSQL_PASSWORD,
-    host=MYSQL_HOST,
-    port=MYSQL_PORT,
-    database=MYSQL_DATABASE
-)
-
-engine = create_engine(connection_url)
 
 
 # ============================================================

@@ -1,30 +1,9 @@
+import os
 import pandas as pd
+
+from dotenv import load_dotenv
 from pathlib import Path
-from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
-
-# --------------------------------------------------
-# MySQL connection settings
-# --------------------------------------------------
-
-MYSQL_USER = "root"
-MYSQL_PASSWORD = "Yasasvi@20"
-MYSQL_HOST = "localhost"
-MYSQL_PORT = 3306
-MYSQL_DATABASE = "healthcare_claims"
-
-# Safely creates the connection URL even if the
-# password contains special characters like @, #, %, :
-connection_url = URL.create(
-    "mysql+pymysql",
-    username=MYSQL_USER,
-    password=MYSQL_PASSWORD,
-    host=MYSQL_HOST,
-    port=MYSQL_PORT,
-    database=MYSQL_DATABASE
-)
-
-engine = create_engine(connection_url)
+from backend.database import engine
 
 # --------------------------------------------------
 # Synthea dataset folder

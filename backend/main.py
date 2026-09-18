@@ -13,8 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import text
 
-from backend.database import engine
-
+from database import engine
 
 # ============================================================
 # FastAPI
