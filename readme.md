@@ -190,11 +190,11 @@ Create a `.env` file inside the `backend` directory.
 Example:
 
 ```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=YOUR_MYSQL_PASSWORD
-DB_NAME=healthcare_claims
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=YOUR_PASSWORD_HERE
+MYSQL_DATABASE=healthcare_claims
 ```
 
 Do not commit the `.env` file to GitHub.
