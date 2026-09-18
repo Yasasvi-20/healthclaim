@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS claim_documents (
     original_filename VARCHAR(255) NOT NULL,
     stored_filename VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
-
+	
     status ENUM(
         'QUEUED',
         'PROCESSING',
@@ -14,6 +14,19 @@ CREATE TABLE IF NOT EXISTS claim_documents (
         'DUPLICATE',
         'FAILED'
     ) NOT NULL DEFAULT 'QUEUED',
+    
+    processing_status ENUM(
+    'QUEUED',
+    'PROCESSING',
+    'COMPLETED',
+    'FAILED'
+	) NOT NULL DEFAULT 'QUEUED',
+
+	validation_status ENUM(
+    'VALIDATED',
+    'NEEDS_REVIEW',
+    'DUPLICATE'
+	) NULL,
 
     upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
