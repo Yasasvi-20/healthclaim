@@ -1,0 +1,54 @@
+services:
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
+    image: healthcare-claims-db:v1
+    container_name: healthcare-claims-db
+    restart: unless-stopped
+
+    env_file:
+      - .env.docker
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+      
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-phealthclaims_root"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: healthcare-claims-backend:v1
+    container_name: healthcare-claims-backend
+    restart: unless-stopped
+
+    env_file:
+      - .env.docker
+
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    image: healthcare-claims-frontend:v1
+    container_name: healthcare-claims-frontend
+    restart: unless-stopped
+
+    ports:
+      - "8080:80"
+
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

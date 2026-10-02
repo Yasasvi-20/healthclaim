@@ -1,0 +1,3 @@
+FROM mysql:8.0
+
+COPY healthcare_claims.sql /docker-entrypoint-initdb.d/healthcare_claims.sql

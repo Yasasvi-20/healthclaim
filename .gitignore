@@ -29,4 +29,6 @@ synthea_sample_data_csv_latest.zip
 # VS Code / OS
 .vscode/
 .DS_Store
-Thumbs.db
+Thumbs.db.env.docker
+.env.docker
+healthcare_claims.sql
