@@ -1,0 +1,14 @@
+.git
+.gitignore
+.DS_Store
+.env
+.env.*
+backend/.env
+backend/.venv
+frontend/node_modules
+frontend/dist
+__pycache__
+*.pyc
+generated_claims/
+uploads/
+synthea_data/
