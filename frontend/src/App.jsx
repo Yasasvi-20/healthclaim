@@ -251,9 +251,9 @@ function App() {
         <div className="system-card">
           <div className="system-row">
             <span className="system-dot" />
-            <strong>Local environment</strong>
+            <strong>Cloud environment</strong>
           </div>
-          <span>MySQL + FastAPI connected</span>
+          <span>Cloud SQL + FastAPI connected</span>
         </div>
       </aside>
 

@@ -32,3 +32,5 @@ synthea_sample_data_csv_latest.zip
 Thumbs.db.env.docker
 .env.docker
 healthcare_claims.sql
+
+backups/
