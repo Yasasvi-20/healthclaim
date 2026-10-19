@@ -1,0 +1,28 @@
+
+services:
+  backend:
+    image: us-central1-docker.pkg.dev/mediclaim-509016/healthcare-claims/backend:v4
+    container_name: healthcare-claims-backend
+    restart: unless-stopped
+
+    environment:
+      CLOUD_MODE: "true"
+      MYSQL_DATABASE: healthcare_claims
+      GCS_BUCKET_NAME: mediclaim-claims-509016
+
+    ports:
+      - "8000:8000"
+
+    extra_hosts:
+      - "metadata.google.internal:169.254.169.254"
+
+  frontend:
+    image: us-central1-docker.pkg.dev/mediclaim-509016/healthcare-claims/frontend:v2
+    container_name: healthcare-claims-frontend
+    restart: unless-stopped
+
+    ports:
+      - "8080:80"
+
+    depends_on:
+      - backend

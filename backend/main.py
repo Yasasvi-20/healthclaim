@@ -1,6 +1,10 @@
-from pathlib import Path
-import shutil
+from io import BytesIO
 import uuid
+
+from google.api_core.exceptions import NotFound
+from fastapi.responses import Response
+
+from storage import save_claim_file, read_claim_file
 
 import pdfplumber
 
@@ -24,6 +28,12 @@ app = FastAPI(
     version="1.1.0"
 )
 
+from database import close_database
+
+
+@app.on_event("shutdown")
+def shutdown_database():
+    close_database()
 
 # ============================================================
 # CORS
@@ -41,26 +51,12 @@ app.add_middleware(
 )
 
 
-# ============================================================
-# Paths
-# ============================================================
-
-BACKEND_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = BACKEND_DIR.parent
-
-UPLOAD_DIR = PROJECT_DIR / "uploads"
-
-UPLOAD_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
 
 # ============================================================
 # Helper: PDF extraction
 # ============================================================
 
-def extract_claim_fields(pdf_path: Path):
+def extract_claim_fields(pdf_content: bytes):
 
     extracted = {
         "claim_id": None,
@@ -72,7 +68,7 @@ def extract_claim_fields(pdf_path: Path):
 
     text_content = ""
 
-    with pdfplumber.open(pdf_path) as pdf:
+    with pdfplumber.open(BytesIO(pdf_content)) as pdf:
 
         for page in pdf.pages:
 
@@ -189,55 +185,42 @@ def get_original_claim(claim_id):
 
     return result
 
-from fastapi.responses import FileResponse
-
 @app.get("/documents/{document_id}/file")
 def get_document_file(document_id: int):
 
     query = text("""
-        SELECT
-            original_filename,
-            file_path
+        SELECT original_filename, file_path
         FROM claim_documents
         WHERE document_id = :document_id
     """)
 
     with engine.connect() as connection:
-
         document = connection.execute(
             query,
-            {
-                "document_id": document_id
-            }
+            {"document_id": document_id}
         ).mappings().first()
 
-
     if document is None:
-
         raise HTTPException(
             status_code=404,
             detail="Document not found"
         )
 
+    try:
+        content = read_claim_file(document["file_path"])
 
-    file_path = Path(
-        document["file_path"]
-    )
-
-
-    if not file_path.exists():
-
+    except (FileNotFoundError, NotFound):
         raise HTTPException(
             status_code=404,
-            detail="PDF file not found"
+            detail="Document file not found"
         )
 
-
-    return FileResponse(
-        path=str(file_path),
+    return Response(
+        content=content,
         media_type="application/pdf",
-        filename=document["original_filename"],
-        content_disposition_type="inline"
+        headers={
+            "Content-Disposition": "inline"
+        }
     )
 
 # ============================================================
@@ -934,30 +917,36 @@ def upload_claim(
         f"{file.filename}"
     )
 
-    file_path = (
-        UPLOAD_DIR
-        /
-        stored_filename
-    )
+    MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
+    pdf_content = file.file.read(MAX_UPLOAD_SIZE + 1)
+
+    if len(pdf_content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="PDF exceeds the 10 MB upload limit"
+        )
+
+    if not pdf_content:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty"
+        )
+
+    file_path = None
     document_id = None
 
 
     try:
 
         # ----------------------------------------------------
-        # 1. Save PDF locally
+        # 1. Save PDF to configured storage
         # ----------------------------------------------------
 
-        with open(
-            file_path,
-            "wb"
-        ) as buffer:
-
-            shutil.copyfileobj(
-                file.file,
-                buffer
-            )
+        file_path = save_claim_file(
+            stored_filename,
+            pdf_content
+        )
 
 
         # ----------------------------------------------------
@@ -1084,11 +1073,7 @@ def upload_claim(
         # 4. Extract fields from the actual PDF contents
         # ----------------------------------------------------
 
-        extracted = (
-            extract_claim_fields(
-                file_path
-            )
-        )
+        extracted = extract_claim_fields(pdf_content)
 
 
         # ----------------------------------------------------

@@ -7,3 +7,6 @@ pdfplumber
 python-dotenv
 cryptography
 reportlab
+google-cloud-storage
+google-cloud-secret-manager
+cloud-sql-python-connector[pymysql]
