@@ -11,7 +11,7 @@ services:
       GCS_BUCKET_NAME: mediclaim-claims-509016
 
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
     extra_hosts:
       - "metadata.google.internal:169.254.169.254"
@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
 
     depends_on:
       - backend
