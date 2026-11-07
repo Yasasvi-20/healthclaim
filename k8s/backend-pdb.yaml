@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mediclaim-backend-pdb
+  namespace: mediclaim
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mediclaim-backend

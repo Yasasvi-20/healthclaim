@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: mediclaim-certificate
+  namespace: mediclaim
+spec:
+  domains:
+    - mediclaim-portal.duckdns.org
