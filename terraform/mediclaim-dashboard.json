@@ -1,6 +1,5 @@
 {
   "displayName": "MediClaim - Milestone 6 Monitoring",
-  "etag": "2bcb703f124e7d8ba95fec6ae159b2c9",
   "mosaicLayout": {
     "columns": 48,
     "tiles": [
@@ -104,6 +103,5 @@
         "yPos": 16
       }
     ]
-  },
-  "name": "projects/mediclaim-509016/dashboards/d6d29205-8e77-4902-b17b-ef070a09f96a"
+  }
 }
