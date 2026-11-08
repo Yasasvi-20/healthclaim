@@ -3,6 +3,12 @@ name: MediClaim Backend CI/CD
 
 on:
   workflow_dispatch:
+    inputs:
+      test_rollback:
+        description: "Test automatic rollback using a nonexistent image"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -73,6 +79,11 @@ jobs:
             -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].image}')
 
           NEW_IMAGE="${IMAGE_BASE}:${GITHUB_SHA}"
+
+          if [[ "${{ inputs.test_rollback }}" == "true" ]]; then
+            echo "::warning::Rollback test enabled: selecting nonexistent image"
+            NEW_IMAGE="${IMAGE_BASE}:rollback-test-nonexistent-${GITHUB_RUN_ID}"
+          fi
 
           if [[ -z "$OLD_IMAGE" ]]; then
             echo "Cannot determine previous image; refusing deployment."
