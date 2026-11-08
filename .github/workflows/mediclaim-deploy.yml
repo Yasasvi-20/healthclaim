@@ -1,0 +1,130 @@
+
+name: MediClaim Backend CI/CD
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: mediclaim-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only deploy from the team's main repository.
+    if: github.repository == 'Yasasvi-20/healthclaim'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      PROJECT_ID: mediclaim-509016
+      IMAGE_BASE: us-central1-docker.pkg.dev/mediclaim-509016/healthcare-claims/backend
+      NAMESPACE: mediclaim
+      DEPLOYMENT: mediclaim-backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: |
+          python3 -m compileall -q backend
+          docker build \
+            -t "${IMAGE_BASE}:${GITHUB_SHA}" \
+            ./backend
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: mediclaim-509016
+          workload_identity_provider: projects/936957989967/locations/global/workloadIdentityPools/mediclaim-github/providers/github-provider
+          service_account: mediclaim-github-deployer@mediclaim-509016.iam.gserviceaccount.com
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v4
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Push backend image
+        run: |
+          docker push "${IMAGE_BASE}:${GITHUB_SHA}"
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: mediclaim-gke
+          location: us-central1-b
+          project_id: mediclaim-509016
+
+      - name: Deploy, verify, and automatically rollback on failure
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OLD_IMAGE=$(kubectl get deployment "$DEPLOYMENT" \
+            -n "$NAMESPACE" \
+            -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].image}')
+
+          NEW_IMAGE="${IMAGE_BASE}:${GITHUB_SHA}"
+
+          if [[ -z "$OLD_IMAGE" ]]; then
+            echo "Cannot determine previous image; refusing deployment."
+            exit 1
+          fi
+
+          echo "Previous image: $OLD_IMAGE"
+          echo "New image: $NEW_IMAGE"
+
+          changed=false
+
+          rollback() {
+            result=$?
+            trap - EXIT
+
+            if [[ $result -ne 0 && "$changed" == "true" ]]; then
+              echo "::warning::Deployment failed. Starting automatic rollback."
+
+              kubectl set image deployment/"$DEPLOYMENT" \
+                "backend=$OLD_IMAGE" -n "$NAMESPACE"
+
+              kubectl rollout status deployment/"$DEPLOYMENT" \
+                -n "$NAMESPACE" --timeout=300s \
+                || echo "::error::Rollback verification failed"
+            fi
+
+            exit "$result"
+          }
+
+          trap rollback EXIT
+
+          if [[ "$OLD_IMAGE" == "$NEW_IMAGE" ]]; then
+            echo "Image already deployed; checking existing rollout."
+          else
+            changed=true
+            kubectl set image deployment/"$DEPLOYMENT" \
+              "backend=$NEW_IMAGE" -n "$NAMESPACE"
+          fi
+
+          kubectl rollout status deployment/"$DEPLOYMENT" \
+            -n "$NAMESPACE" --timeout=300s
+
+          DESIRED=$(kubectl get deployment "$DEPLOYMENT" \
+            -n "$NAMESPACE" -o jsonpath='{.spec.replicas}')
+
+          READY=$(kubectl get deployment "$DEPLOYMENT" \
+            -n "$NAMESPACE" -o jsonpath='{.status.readyReplicas}')
+
+          if [[ "$READY" != "$DESIRED" ]]; then
+            echo "Health check failed: ready=$READY desired=$DESIRED"
+            exit 1
+          fi
+
+          echo "Deployment healthy: $READY/$DESIRED replicas ready"
+          echo "Rollback not required."

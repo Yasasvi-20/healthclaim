@@ -19,6 +19,11 @@ from sqlalchemy import text
 
 from database import engine
 
+import json
+import logging
+import time
+from fastapi import Request
+
 # ============================================================
 # FastAPI
 # ============================================================
@@ -27,6 +32,57 @@ app = FastAPI(
     title="MediClaim Healthcare Claims Intake and Validation API",
     version="1.1.0"
 )
+
+# ============================================================
+# Structured JSON Logging - Milestone 6
+# ============================================================
+
+logger = logging.getLogger("mediclaim")
+logger.setLevel(logging.INFO)
+logger.propagate = False
+
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+
+
+@app.middleware("http")
+async def log_http_requests(request: Request, call_next):
+    start_time = time.perf_counter()
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+
+    finally:
+        duration_ms = round(
+            (time.perf_counter() - start_time) * 1000,
+            2
+        )
+
+        if status_code >= 500:
+            severity = "ERROR"
+        elif status_code >= 400:
+            severity = "WARNING"
+        else:
+            severity = "INFO"
+
+        route = request.scope.get("route")
+
+        log_entry = {
+            "severity": severity,
+            "message": "HTTP request completed",
+            "method": request.method,
+            "path": getattr(route, "path", "/unmatched"),
+            "status_code": status_code,
+            "duration_ms": duration_ms
+        }
+
+        logger.info(json.dumps(log_entry))
+
 
 from database import close_database
 
@@ -599,6 +655,24 @@ def health():
             detail=str(error)
         )
 
+# ============================================================
+# Milestone 6 - Controlled HTTP 500 Error
+# ============================================================
+
+import os
+
+@app.get("/demo/error")
+def trigger_demo_error():
+    if os.getenv("ENABLE_DEMO_ERROR", "false").lower() != "true":
+        raise HTTPException(
+            status_code=404,
+            detail="Not found"
+        )
+
+    raise HTTPException(
+        status_code=500,
+        detail="Controlled error for Milestone 6 monitoring demonstration"
+    )
 
 # ============================================================
 # Dashboard

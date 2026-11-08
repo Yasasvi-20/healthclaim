@@ -1,0 +1,36 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mediclaim-github-deployer
+  namespace: mediclaim
+rules:
+  # Read and update only the backend deployment
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["mediclaim-backend"]
+    verbs: ["get", "patch", "update", "watch"]
+
+  # Read ReplicaSets for deployment history and rollback
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+
+  # Read pods for rollout diagnostics
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mediclaim-github-deployer-binding
+  namespace: mediclaim
+subjects:
+  - kind: User
+    name: mediclaim-github-deployer@mediclaim-509016.iam.gserviceaccount.com
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: mediclaim-github-deployer
+  apiGroup: rbac.authorization.k8s.io
