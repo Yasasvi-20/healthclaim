@@ -8,7 +8,7 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments"]
     resourceNames: ["mediclaim-backend"]
-    verbs: ["get", "patch", "update"]
+    verbs: ["get", "patch", "update", "watch"]
 
   # Read ReplicaSets for deployment history and rollback
   - apiGroups: ["apps"]
