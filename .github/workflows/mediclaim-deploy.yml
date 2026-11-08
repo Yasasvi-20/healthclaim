@@ -76,7 +76,7 @@ jobs:
 
           OLD_IMAGE=$(kubectl get deployment "$DEPLOYMENT" \
             -n "$NAMESPACE" \
-            -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].image}'
+            -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].image}')
 
           NEW_IMAGE="${IMAGE_BASE}:${GITHUB_SHA}"
 
